@@ -1,84 +1,75 @@
 
 import json
 import os
-import math
-import wave
 import subprocess
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-# ----------------------------------
-# VIDEO CONFIGURATION
-# ----------------------------------
+# =====================================
+# CONFIGURATION
+# =====================================
 
 WIDTH = 1080
 HEIGHT = 1920
 FPS = 30
-OUTPUT_DIR = Path("output")
-TEMP_DIR = Path("temp")
 
-OUTPUT_DIR.mkdir(exist_ok=True)
-TEMP_DIR.mkdir(exist_ok=True)
+OUTPUT = Path("output")
+TEMP = Path("temp")
+VOICES = Path("voices")
 
-OUTPUT_FILE = OUTPUT_DIR / "faith_short.mp4"
+OUTPUT.mkdir(exist_ok=True)
+TEMP.mkdir(exist_ok=True)
+
+FINAL_VIDEO = OUTPUT / "faith_short.mp4"
+VOICE_MODEL = "en_US-joe-medium"
+
+FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+
+PAUSE_AFTER_SCENE = 0.5
 
 
-# ----------------------------------
-# READ DATA FROM GITHUB EVENT
-# ----------------------------------
+# =====================================
+# READ INPUT
+# =====================================
 
 event_path = os.environ.get("GITHUB_EVENT_PATH")
-
 payload = {}
 
 if event_path and Path(event_path).exists():
-    with open(event_path, "r", encoding="utf-8") as file:
-        event = json.load(file)
+    with open(event_path, encoding="utf-8") as f:
+        event = json.load(f)
         payload = event.get("client_payload", {})
 
-# Sample content for a manual test
-# Real n8n content will replace this later.
-
+# Sample content for testing
 if not payload:
     payload = {
-        "video_title": "YOU ARE A NEW CREATION IN CHRIST",
+        "video_title": "I AM A NEW CREATION IN CHRIST",
         "scenes": [
             {
-                "scene_number": 1,
-                "scene_type": "Opening Hook",
-                "display_text": "Your past does not define your identity in Christ.",
-                "duration_seconds": 6
+                "scene_type": "Opening Declaration",
+                "display_text": "My past does not define me. I am a new creation in Christ."
             },
             {
-                "scene_number": 2,
                 "scene_type": "Scripture",
-                "display_text": "2 Corinthians 5:17",
-                "duration_seconds": 7
+                "display_text": "2 Corinthians 5:17. If anyone is in Christ, he is a new creation."
             },
             {
-                "scene_number": 3,
-                "scene_type": "Teaching Part 1",
-                "display_text": "If anyone is in Christ, he is a new creation. The old has passed away.",
-                "duration_seconds": 14
+                "scene_type": "New Identity",
+                "display_text": "The old has passed away. My life has a new foundation in Jesus Christ."
             },
             {
-                "scene_number": 4,
-                "scene_type": "Teaching Part 2",
-                "display_text": "Your identity is now rooted in what Jesus Christ has accomplished.",
-                "duration_seconds": 14
+                "scene_type": "My Position in Christ",
+                "display_text": "I am accepted, loved and reconciled to God through Jesus."
             },
             {
-                "scene_number": 5,
-                "scene_type": "Practical Application",
-                "display_text": "Renew your mind with God's Word. Learn to see yourself through Christ.",
-                "duration_seconds": 8
+                "scene_type": "My Confession",
+                "display_text": "I refuse to define myself by my past. I choose to see myself through God's Word."
             },
             {
-                "scene_number": 6,
                 "scene_type": "Faith Declaration",
-                "display_text": "I am a new creation in Christ Jesus. My identity is established in Him.",
-                "duration_seconds": 8
+                "display_text": "I am a new creation in Christ Jesus. My identity is established in Him."
             }
         ]
     }
@@ -86,29 +77,23 @@ if not payload:
 scenes = payload.get("scenes", [])
 
 if not scenes:
-    raise ValueError("No video scenes were received.")
+    raise ValueError("No scenes received.")
+
+if len(scenes) > 10:
+    raise ValueError("Maximum of 10 scenes allowed.")
 
 title = payload.get("video_title", "New Creation Realities")
 
 
-# ----------------------------------
-# FONT CONFIGURATION
-# ----------------------------------
-
-FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-BOLD_FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-
+# =====================================
+# FONT AND TEXT FUNCTIONS
+# =====================================
 
 def get_font(size, bold=False):
-    path = BOLD_FONT_PATH if bold else FONT_PATH
-    return ImageFont.truetype(path, size)
+    return ImageFont.truetype(BOLD if bold else FONT, size)
 
 
-# ----------------------------------
-# TEXT WRAPPING
-# ----------------------------------
-
-def wrap_text(text, font, max_width, draw):
+def wrap_text(text, font, draw, max_width):
     words = text.split()
     lines = []
     current = ""
@@ -129,191 +114,223 @@ def wrap_text(text, font, max_width, draw):
     return lines
 
 
-# ----------------------------------
-# CREATE BACKGROUND
-# ----------------------------------
+# =====================================
+# CREATE VISUAL SCENE
+# =====================================
 
-def create_background():
-    image = Image.new("RGB", (WIDTH, HEIGHT))
-    pixels = image.load()
+def create_scene(scene, index):
 
-    for y in range(HEIGHT):
-        ratio = y / HEIGHT
+    image = Image.new(
+        "RGB",
+        (WIDTH, HEIGHT),
+        (12, 19, 43)
+    )
 
-        red = int(12 + ratio * 15)
-        green = int(18 + ratio * 10)
-        blue = int(42 + ratio * 28)
-
-        for x in range(WIDTH):
-            pixels[x, y] = (red, green, blue)
-
-    return image
-
-
-# ----------------------------------
-# CREATE VIDEO SCENES
-# ----------------------------------
-
-scene_files = []
-durations = []
-
-for index, scene in enumerate(scenes):
-
-    image = create_background()
     draw = ImageDraw.Draw(image)
 
-    scene_type = scene.get("scene_type", "Teaching")
-    text = str(scene.get("display_text", ""))
-
-    # Top branding
-    brand_font = get_font(34, bold=True)
+    # Elegant gold branding
+    brand_font = get_font(34, True)
 
     draw.text(
-        (WIDTH // 2, 160),
+        (WIDTH // 2, 170),
         "NEW CREATION REALITIES",
         font=brand_font,
-        fill=(225, 183, 105),
+        fill=(226, 188, 112),
         anchor="mm"
     )
 
-    # Scene label
-    label_font = get_font(28)
+    # Scene heading
+    heading = scene.get("scene_type", "DECLARATION")
 
     draw.text(
-        (WIDTH // 2, 330),
-        scene_type.upper(),
-        font=label_font,
-        fill=(205, 205, 220),
+        (WIDTH // 2, 340),
+        heading.upper(),
+        font=get_font(29),
+        fill=(210, 210, 225),
         anchor="mm"
     )
 
-    # Main message
-    font_size = 58
+    # Main declaration
+    text = str(scene.get("display_text", ""))
+
+    font_size = 62
 
     while font_size >= 34:
-        main_font = get_font(font_size, bold=True)
-        lines = wrap_text(text, main_font, 850, draw)
+        font = get_font(font_size, True)
+        lines = wrap_text(text, font, draw, 850)
 
         if len(lines) <= 10:
             break
 
         font_size -= 4
 
-    line_height = font_size + 35
+    line_height = font_size + 38
     total_height = len(lines) * line_height
 
     y = (HEIGHT - total_height) // 2
 
     for line in lines:
+
         draw.text(
             (WIDTH // 2, y),
             line,
-            font=main_font,
+            font=font,
             fill=(255, 255, 255),
             anchor="mm"
         )
+
         y += line_height
 
-    # Bottom branding
-    footer_font = get_font(27)
-
+    # Scene number
     draw.text(
-        (WIDTH // 2, 1750),
-        "GROW IN THE KNOWLEDGE OF CHRIST",
-        font=footer_font,
-        fill=(225, 183, 105),
+        (WIDTH // 2, 1740),
+        f"SCENE {index + 1:02d}",
+        font=get_font(28),
+        fill=(226, 188, 112),
         anchor="mm"
     )
 
-    filename = TEMP_DIR / f"scene_{index + 1}.png"
-    image.save(filename)
+    path = TEMP / f"scene_{index + 1}.png"
+    image.save(path)
 
-    scene_files.append(filename)
-    durations.append(int(scene.get("duration_seconds", 8)))
+    return path
 
 
-# ----------------------------------
-# CREATE ORIGINAL AMBIENT AUDIO
-# ----------------------------------
+# =====================================
+# GENERATE NARRATION FOR EACH SCENE
+# =====================================
 
-sample_rate = 22050
-total_duration = sum(durations)
+segments = []
 
-audio_file = TEMP_DIR / "background.wav"
+for index, scene in enumerate(scenes):
 
-# Gentle original synthesised background pad.
-# This is not a commercial music recording.
+    narration = str(scene.get("display_text", "")).strip()
 
-chords = [
-    (130.81, 164.81, 196.00),
-    (146.83, 174.61, 220.00),
-    (110.00, 130.81, 164.81),
-    (130.81, 164.81, 196.00)
-]
+    if not narration:
+        raise ValueError(f"Scene {index + 1} has no text.")
 
-with wave.open(str(audio_file), "wb") as wav:
-    wav.setnchannels(1)
-    wav.setsampwidth(2)
-    wav.setframerate(sample_rate)
+    print(f"Generating narration for scene {index + 1}")
 
-    for i in range(total_duration * sample_rate):
+    audio_path = TEMP / f"voice_{index + 1}.wav"
 
-        t = i / sample_rate
-        chord = chords[int(t // 8) % len(chords)]
+    command = [
+        "python",
+        "-m",
+        "piper",
+        "-m",
+        VOICE_MODEL,
+        "--data-dir",
+        str(VOICES),
+        "-f",
+        str(audio_path),
+        "--",
+        narration
+    ]
 
-        signal = sum(
-            math.sin(2 * math.pi * frequency * t)
-            for frequency in chord
-        ) / 3
+    subprocess.run(command, check=True)
 
-        envelope = min(1, t / 3, (total_duration - t) / 4)
-        value = int(4500 * signal * max(0, envelope))
-
-        wav.writeframesraw(
-            value.to_bytes(2, byteorder="little", signed=True)
+    if not audio_path.exists():
+        raise FileNotFoundError(
+            f"Narration missing for scene {index + 1}"
         )
 
+    image_path = create_scene(scene, index)
 
-# ----------------------------------
-# CREATE FFMPEG INPUT LIST
-# ----------------------------------
+    # Determine actual spoken duration
+    probe = subprocess.run(
+        [
+            "ffprobe",
+            "-v", "error",
+            "-show_entries", "format=duration",
+            "-of", "default=noprint_wrappers=1:nokey=1",
+            str(audio_path)
+        ],
+        capture_output=True,
+        text=True,
+        check=True
+    )
 
-concat_file = TEMP_DIR / "scenes.txt"
+    audio_duration = float(probe.stdout.strip())
 
-with open(concat_file, "w", encoding="utf-8") as file:
-    for filename, duration in zip(scene_files, durations):
-        file.write(f"file '{filename.resolve()}'\n")
-        file.write(f"duration {duration}\n")
+    # Give the listener a short pause after speaking
+    segment_duration = audio_duration + PAUSE_AFTER_SCENE
 
-    file.write(f"file '{scene_files[-1].resolve()}'\n")
+    segment_path = TEMP / f"segment_{index + 1}.mp4"
+
+    # Keep the image on screen while the narration plays
+    render_command = [
+        "ffmpeg",
+        "-y",
+        "-loop", "1",
+        "-framerate", str(FPS),
+        "-i", str(image_path),
+        "-i", str(audio_path),
+        "-t", str(segment_duration),
+        "-vf", "format=yuv420p",
+        "-c:v", "libx264",
+        "-preset", "ultrafast",
+        "-crf", "23",
+        "-c:a", "aac",
+        "-b:a", "128k",
+        "-ar", "44100",
+        "-shortest",
+        "-movflags", "+faststart",
+        str(segment_path)
+    ]
+
+    subprocess.run(render_command, check=True)
+
+    segments.append(segment_path)
 
 
-# ----------------------------------
-# RENDER FINAL VIDEO
-# ----------------------------------
+# =====================================
+# JOIN ALL VIDEO SEGMENTS
+# =====================================
 
-command = [
+concat_file = TEMP / "segments.txt"
+
+with open(concat_file, "w", encoding="utf-8") as f:
+
+    for segment in segments:
+        f.write(f"file '{segment.resolve()}'\n")
+
+concat_command = [
     "ffmpeg",
     "-y",
     "-f", "concat",
     "-safe", "0",
     "-i", str(concat_file),
-    "-i", str(audio_file),
-    "-vf", f"scale={WIDTH}:{HEIGHT},fps={FPS},format=yuv420p",
-    "-c:v", "libx264",
-    "-preset", "ultrafast",
-    "-crf", "23",
-    "-c:a", "aac",
-    "-b:a", "128k",
-    "-shortest",
+    "-c", "copy",
     "-movflags", "+faststart",
-    str(OUTPUT_FILE)
+    str(FINAL_VIDEO)
 ]
 
-subprocess.run(command, check=True)
+subprocess.run(concat_command, check=True)
 
-print("VIDEO RENDERED SUCCESSFULLY")
+
+# =====================================
+# FINAL REPORT
+# =====================================
+
+probe = subprocess.run(
+    [
+        "ffprobe",
+        "-v", "error",
+        "-show_entries", "format=duration",
+        "-of", "default=noprint_wrappers=1:nokey=1",
+        str(FINAL_VIDEO)
+    ],
+    capture_output=True,
+    text=True,
+    check=True
+)
+
+duration = float(probe.stdout.strip())
+
+print("--------------------------------")
+print("FAITH SHORT GENERATED SUCCESSFULLY")
 print(f"Title: {title}")
 print(f"Scenes: {len(scenes)}")
-print(f"Duration: {total_duration} seconds")
-print(f"Output: {OUTPUT_FILE}")
+print(f"Duration: {duration:.1f} seconds")
+print(f"Output: {FINAL_VIDEO}")
+print("--------------------------------")
