@@ -4,7 +4,6 @@ name: Faith Shorts Video Renderer
 on:
   repository_dispatch:
     types: [render_video]
-
   workflow_dispatch:
 
 permissions:
@@ -31,15 +30,30 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install Pillow
+          python -m pip install Pillow piper-tts
+
+      - name: Prepare voice model
+        run: |
+          mkdir -p voices output
+          python -m piper.download_voices en_US-joe-medium --data-dir voices
+
+      - name: Test male narration
+        run: |
+          python -m piper \
+            -m en_US-joe-medium \
+            --data-dir voices \
+            -f output/voice_test.wav \
+            -- "I am a new creation in Christ Jesus. My identity is established in Him. I am accepted, loved and empowered by the grace of God."
 
       - name: Generate faith-based video
         run: python renderer.py
 
-      - name: Upload finished video
+      - name: Upload finished video and voice test
         uses: actions/upload-artifact@v4
         with:
           name: faith-based-youtube-short
-          path: output/faith_short.mp4
+          path: |
+            output/faith_short.mp4
+            output/voice_test.wav
           if-no-files-found: error
           retention-days: 7
