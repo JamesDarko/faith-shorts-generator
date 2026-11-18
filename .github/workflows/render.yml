@@ -1,0 +1,35 @@
+
+name: Faith Shorts Video Renderer
+
+on:
+  repository_dispatch:
+    types: [render_video]
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Welcome
+        run: echo "Faith Shorts video rendering started!"
+
+      - name: Check Python
+        run: python --version
+
+      - name: Check FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version
+
+      - name: Confirm video request
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          echo "Event received: $EVENT_NAME"
+          echo "The video rendering environment is ready."
