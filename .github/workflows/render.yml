@@ -22,7 +22,6 @@ jobs:
         with:
           python-version: "3.11"
 
-     
       - name: Check and install FFmpeg
         timeout-minutes: 15
         run: |
@@ -34,7 +33,6 @@ jobs:
           fi
 
           ffmpeg -version
-
 
       - name: Install Python dependencies
         run: |
@@ -54,15 +52,16 @@ jobs:
             -f output/voice_test.wav \
             -- "I am a new creation in Christ Jesus. My identity is established in Him. I am accepted, loved and empowered by the grace of God."
 
-      - name: Generate faith-based video
+      - name: Generate faith-based video and thumbnail
         run: python renderer.py
 
-      - name: Upload finished video and voice test
+      - name: Upload finished video, thumbnail and voice test
         uses: actions/upload-artifact@v4
         with:
           name: faith-based-youtube-short
           path: |
             output/faith_short.mp4
+            output/faith_short_thumbnail.jpg
             output/voice_test.wav
           if-no-files-found: error
           retention-days: 7
