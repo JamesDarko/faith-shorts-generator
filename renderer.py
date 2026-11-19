@@ -6,6 +6,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
+from thumbnail import create_faith_shorts_thumbnail
+
 # ==========================================
 # FAITH SHORTS V2 - CONFIGURATION
 # ==========================================
@@ -144,6 +146,20 @@ scripture = payload.get(
     "scripture_reference",
     "NEW CREATION REALITIES"
 )
+
+# Thumbnail fields are supplied by n8n. Fall back to the video
+# title and scripture if the optional thumbnail fields are absent.
+thumbnail_text = str(
+    payload.get("thumbnail_text") or title
+).strip()
+
+thumbnail_scripture = str(
+    payload.get("thumbnail_scripture") or scripture
+).strip()
+
+thumbnail_subtitle = str(
+    payload.get("thumbnail_subtitle") or "Faith Declaration"
+).strip()
 
 if not scenes:
     raise ValueError("No scenes supplied.")
@@ -649,6 +665,19 @@ run(concat_command)
 
 
 # ==========================================
+# GENERATE MATCHING PORTRAIT THUMBNAIL
+# ==========================================
+
+thumbnail_path = create_faith_shorts_thumbnail(
+    video_title=thumbnail_text,
+    scripture_reference=thumbnail_scripture,
+    subtitle=thumbnail_subtitle,
+)
+
+print(f"Thumbnail generated: {thumbnail_path}")
+
+
+# ==========================================
 # FINAL QUALITY REPORT
 # ==========================================
 
@@ -666,6 +695,7 @@ print(f"Scenes: {len(scenes)}")
 print(f"Words: {total_words}")
 print(f"Duration: {duration:.1f} seconds")
 print(f"Output: {FINAL_VIDEO}")
+print(f"Thumbnail: {thumbnail_path}")
 
 if duration < 45:
 
