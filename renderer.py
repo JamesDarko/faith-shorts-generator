@@ -1,4 +1,3 @@
-
 import json
 import os
 import re
@@ -267,12 +266,14 @@ def wrap_text(text, font, draw, max_width):
 
 def create_cinematic_background(index):
 
+    # Clean deep navy background
     image = Image.new(
-        "RGB",
+        "RGBA",
         (WIDTH, HEIGHT),
-        NAVY
+        (*NAVY, 255)
     )
 
+    # Subtle cinematic blue lighting
     glow = Image.new(
         "RGBA",
         (WIDTH, HEIGHT),
@@ -281,11 +282,13 @@ def create_cinematic_background(index):
 
     glow_draw = ImageDraw.Draw(glow)
 
+    # Soft upper blue lighting
     glow_draw.ellipse(
-        (180, 150, 1100, 1100),
-        fill=(191, 133, 61, 85)
+        (140, 200, 1000, 1100),
+        fill=(45, 75, 130, 35)
     )
 
+    # Gentle lower blue lighting
     glow_draw.ellipse(
         (-300, 850, 800, 1800),
         fill=(48, 83, 140, 55)
@@ -296,19 +299,12 @@ def create_cinematic_background(index):
     )
 
     image = Image.alpha_composite(
-        image.convert("RGBA"),
+        image,
         glow
     )
 
+    # Preserve the elegant gold border
     draw = ImageDraw.Draw(image)
-
-    for offset in range(-600, 1400, 180):
-
-        draw.line(
-            (WIDTH // 2, 0, offset, HEIGHT),
-            fill=(225, 187, 119, 17),
-            width=5
-        )
 
     draw.rounded_rectangle(
         (45, 45, WIDTH - 45, HEIGHT - 45),
@@ -691,6 +687,6 @@ else:
 
 print("Audio: Embedded male Piper narration")
 print("Background music: None")
-print("Visuals: Cinematic golden lighting")
+print("Visuals: Clean navy background with subtle blue cinematic lighting")
 print("Engagement: Interactive faith declarations")
 print("================================")
