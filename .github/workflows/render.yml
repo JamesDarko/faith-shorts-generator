@@ -24,7 +24,7 @@ jobs:
 
      
       - name: Check and install FFmpeg
-        timeout-minutes: 5
+        timeout-minutes: 15
         run: |
           if command -v ffmpeg >/dev/null 2>&1; then
             echo "FFmpeg is already installed."
