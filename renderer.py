@@ -23,6 +23,7 @@ OUTPUT.mkdir(exist_ok=True)
 TEMP.mkdir(exist_ok=True)
 
 FINAL_VIDEO = OUTPUT / "faith_short.mp4"
+
 VOICE_MODEL = "en_US-joe-medium"
 
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
@@ -37,80 +38,113 @@ PAUSE_AFTER_PHRASE = 0.25
 
 
 # ==========================================
-# INPUT CONTENT
+# READ AUTOMATION INPUT
 # ==========================================
 
 event_path = os.environ.get("GITHUB_EVENT_PATH")
 payload = {}
 
 if event_path and Path(event_path).exists():
+
     with open(event_path, encoding="utf-8") as f:
+
         event = json.load(f)
         payload = event.get("client_payload", {})
 
-# Expanded sample teaching for testing.
-# Approximately 100-120 spoken words.
+# Sample content for manual testing
 
 if not payload:
+
     payload = {
+
         "video_title": "I AM A NEW CREATION IN CHRIST",
+
         "scripture_reference": "2 CORINTHIANS 5:17",
 
         "scenes": [
+
             {
-                "scene_type": "Opening Declaration",
+                "scene_type": "Opening",
                 "display_text": (
-                    "Listen carefully. Your past does not "
-                    "define who you are today. In Christ, "
-                    "you have received a completely new identity."
+                    "Listen carefully! Your past does not "
+                    "define who you are in Christ. Today, "
+                    "I want you to understand something "
+                    "powerful about your new identity."
                 )
             },
+
             {
                 "scene_type": "Scripture Foundation",
                 "display_text": (
-                    "Second Corinthians five seventeen declares "
-                    "that anyone who is in Christ is a new creation. "
-                    "The old has passed away. Behold, the new has come."
+                    "Second Corinthians five seventeen "
+                    "declares that if anyone is in Christ, "
+                    "he is a new creation. The old has passed "
+                    "away. Behold, the new has come. "
+                    "This is God's Word concerning you."
                 )
             },
+
             {
                 "scene_type": "Your New Identity",
                 "display_text": (
-                    "You are not trying to become accepted by God. "
-                    "Through Jesus Christ, you have been brought "
-                    "into a new relationship with the Father."
+                    "Now, repeat after me! "
+                    "I AM A NEW CREATION IN CHRIST! "
+                    "I am not defined by my past. "
+                    "I am defined by what Jesus has accomplished. "
+                    "Say it again with confidence!"
                 )
             },
+
             {
                 "scene_type": "Your Position in Christ",
                 "display_text": (
-                    "You are loved. You are accepted. "
-                    "You are reconciled to God. "
-                    "Your identity is established in Christ, "
-                    "not in yesterday's mistakes."
+                    "Say this loudly! I AM ACCEPTED! "
+                    "I AM LOVED! I AM RECONCILED TO GOD! "
+                    "These are not empty words. "
+                    "These are realities established through Jesus Christ."
                 )
             },
+
             {
                 "scene_type": "Personal Confession",
                 "display_text": (
-                    "Today, refuse to define yourself by your past. "
-                    "Renew your mind with God's Word. "
-                    "See yourself through what Jesus has accomplished."
+                    "Now, let this truth settle in your heart. "
+                    "Stop allowing yesterday's failures to define "
+                    "today's identity. Renew your mind with God's Word. "
+                    "See yourself through what Christ has accomplished."
                 )
             },
+
             {
                 "scene_type": "Final Declaration",
                 "display_text": (
-                    "I am a new creation in Christ Jesus. "
-                    "My old life does not define me. "
-                    "I am accepted, loved and established in Him. "
-                    "This is my identity, and this is my confession."
+                    "One more time! Declare this over your life! "
+                    "I AM A NEW CREATION IN CHRIST JESUS! "
+                    "I AM ACCEPTED, LOVED AND ESTABLISHED IN HIM! "
+                    "I belong to God, and my identity is secure in Christ. "
+                    "Walk in this truth today!"
                 )
             }
+
         ]
+
     }
 
+
 scenes = payload.get("scenes", [])
+
+title = payload.get(
+    "video_title",
+    "New Creation Realities"
+)
+
+# Fix: make scripture reference available
+# throughout the rendering functions.
+
+scripture = payload.get(
+    "scripture_reference",
+    "NEW CREATION REALITIES"
+)
 
 if not scenes:
     raise ValueError("No scenes supplied.")
@@ -118,31 +152,39 @@ if not scenes:
 if len(scenes) > 10:
     raise ValueError("Maximum of 10 scenes allowed.")
 
-title = payload.get("video_title", "New Creation Realities")
-
-scripture = payload.get(
-    "scripture_reference",
-    "NEW CREATION REALITIES"
-)
-
 
 # ==========================================
 # HELPER FUNCTIONS
 # ==========================================
 
 def run(command):
-    subprocess.run(command, check=True)
+
+    subprocess.run(
+        command,
+        check=True
+    )
 
 
 def get_font(size, bold=False):
+
+    font_path = BOLD if bold else FONT
+
+    if not Path(font_path).exists():
+
+        raise FileNotFoundError(
+            f"Font file not found: {font_path}"
+        )
+
     return ImageFont.truetype(
-        BOLD if bold else FONT,
+        font_path,
         size
     )
 
 
 def probe_duration(path):
+
     result = subprocess.run(
+
         [
             "ffprobe",
             "-v", "error",
@@ -150,19 +192,17 @@ def probe_duration(path):
             "-of", "default=noprint_wrappers=1:nokey=1",
             str(path)
         ],
+
         capture_output=True,
         text=True,
         check=True
+
     )
 
     return float(result.stdout.strip())
 
 
 def split_phrases(text, max_words=10):
-    """
-    Divide narration into short readable phrases.
-    Punctuation is retained for natural speech.
-    """
 
     sentences = re.split(
         r'(?<=[.!?;:])\s+',
@@ -177,7 +217,9 @@ def split_phrases(text, max_words=10):
 
         for i in range(0, len(words), max_words):
 
-            phrase = " ".join(words[i:i + max_words])
+            phrase = " ".join(
+                words[i:i + max_words]
+            )
 
             if phrase:
                 phrases.append(phrase)
@@ -188,6 +230,7 @@ def split_phrases(text, max_words=10):
 def wrap_text(text, font, draw, max_width):
 
     words = text.split()
+
     lines = []
     current = ""
 
@@ -202,10 +245,14 @@ def wrap_text(text, font, draw, max_width):
         )[2]
 
         if width <= max_width:
+
             current = test
+
         else:
+
             if current:
                 lines.append(current)
+
             current = word
 
     if current:
@@ -215,7 +262,7 @@ def wrap_text(text, font, draw, max_width):
 
 
 # ==========================================
-# CINEMATIC BACKGROUND GENERATOR
+# CINEMATIC BACKGROUND
 # ==========================================
 
 def create_cinematic_background(index):
@@ -226,7 +273,6 @@ def create_cinematic_background(index):
         NAVY
     )
 
-    # Atmospheric golden light.
     glow = Image.new(
         "RGBA",
         (WIDTH, HEIGHT),
@@ -256,7 +302,6 @@ def create_cinematic_background(index):
 
     draw = ImageDraw.Draw(image)
 
-    # Subtle cinematic rays.
     for offset in range(-600, 1400, 180):
 
         draw.line(
@@ -265,7 +310,6 @@ def create_cinematic_background(index):
             width=5
         )
 
-    # Decorative gold border.
     draw.rounded_rectangle(
         (45, 45, WIDTH - 45, HEIGHT - 45),
         radius=35,
@@ -277,7 +321,7 @@ def create_cinematic_background(index):
 
 
 # ==========================================
-# CREATE CINEMATIC PHRASE FRAME
+# CREATE PHRASE FRAME
 # ==========================================
 
 def create_phrase_frame(
@@ -287,10 +331,14 @@ def create_phrase_frame(
     phrase_index
 ):
 
-    image = create_cinematic_background(scene_index)
+    image = create_cinematic_background(
+        scene_index
+    )
+
     draw = ImageDraw.Draw(image)
 
-    # Channel branding.
+    # Channel branding
+
     draw.text(
         (WIDTH // 2, 170),
         "NEW CREATION REALITIES",
@@ -299,7 +347,8 @@ def create_phrase_frame(
         anchor="mm"
     )
 
-    # Scene heading.
+    # Scene heading
+
     heading = scene.get(
         "scene_type",
         "DECLARATION"
@@ -313,12 +362,16 @@ def create_phrase_frame(
         anchor="mm"
     )
 
-    # Highlighted declaration.
+    # Main declaration
+
     font_size = 76
 
     while font_size >= 40:
 
-        font = get_font(font_size, True)
+        font = get_font(
+            font_size,
+            True
+        )
 
         lines = wrap_text(
             phrase,
@@ -333,14 +386,43 @@ def create_phrase_frame(
         font_size -= 4
 
     line_height = font_size + 55
-    total_height = len(lines) * line_height
 
-    y = (HEIGHT - total_height) // 2
+    total_height = (
+        len(lines) * line_height
+    )
+
+    y = (
+        HEIGHT - total_height
+    ) // 2
+
+    # Emphasise important declarations
+
+    emphasis_words = [
+        "CHRIST",
+        "ACCEPTED",
+        "LOVED",
+        "NEW",
+        "FORGIVEN",
+        "RIGHTEOUS",
+        "BLESSED",
+        "COMPLETE"
+    ]
+
+    phrase_upper = phrase.upper()
+
+    highlighted = any(
+        word in phrase_upper
+        for word in emphasis_words
+    )
 
     for line_number, line in enumerate(lines):
 
-        # Alternate emphasis for a cinematic look.
-        colour = GOLD if line_number == 0 else WHITE
+        if highlighted:
+            colour = GOLD
+        elif line_number == 0:
+            colour = GOLD
+        else:
+            colour = WHITE
 
         draw.text(
             (WIDTH // 2, y),
@@ -354,7 +436,8 @@ def create_phrase_frame(
 
         y += line_height
 
-    # Scripture reference.
+    # Scripture reference
+
     draw.text(
         (WIDTH // 2, 1550),
         scripture,
@@ -363,7 +446,8 @@ def create_phrase_frame(
         anchor="mm"
     )
 
-    # Progress indicator.
+    # Footer
+
     draw.text(
         (WIDTH // 2, 1740),
         "FAITH • IDENTITY • CHRIST",
@@ -382,10 +466,11 @@ def create_phrase_frame(
 
 
 # ==========================================
-# GENERATE VIDEO CLIPS
+# GENERATE VIDEO AND NARRATION
 # ==========================================
 
 segments = []
+
 total_words = 0
 
 for scene_index, scene in enumerate(scenes):
@@ -395,11 +480,14 @@ for scene_index, scene in enumerate(scenes):
     ).strip()
 
     if not narration:
+
         raise ValueError(
             f"Scene {scene_index + 1} is empty."
         )
 
-    total_words += len(narration.split())
+    total_words += len(
+        narration.split()
+    )
 
     print(
         f"Processing scene {scene_index + 1}: "
@@ -411,17 +499,17 @@ for scene_index, scene in enumerate(scenes):
     for phrase_index, phrase in enumerate(phrases):
 
         print(
-            f"Generating voice: {phrase}"
+            f"Generating narration: {phrase}"
         )
 
         audio_path = TEMP / (
             f"voice_{scene_index}_{phrase_index}.wav"
         )
 
-        # Generate continuous-quality narration
-        # in short, naturally punctuated phrases.
+        # Generate Piper narration
 
         voice_command = [
+
             "python",
             "-m",
             "piper",
@@ -433,20 +521,26 @@ for scene_index, scene in enumerate(scenes):
             str(audio_path),
             "--",
             phrase
+
         ]
 
         run(voice_command)
 
         if not audio_path.exists():
+
             raise FileNotFoundError(
-                f"Missing audio: {audio_path}"
+                f"Missing narration: {audio_path}"
             )
 
-        audio_duration = probe_duration(audio_path)
+        audio_duration = probe_duration(
+            audio_path
+        )
 
         clip_duration = (
             audio_duration + PAUSE_AFTER_PHRASE
         )
+
+        # Generate matching visual
 
         image_path = create_phrase_frame(
             phrase,
@@ -459,10 +553,10 @@ for scene_index, scene in enumerate(scenes):
             f"clip_{scene_index}_{phrase_index}.mp4"
         )
 
-        # Cinematic slow zoom.
-        # Each phrase receives its own animated frame.
+        # Subtle cinematic zoom
 
         video_filter = (
+
             "zoompan="
             "z='min(zoom+0.00035,1.04)':"
             "x='iw/2-(iw/zoom/2)':"
@@ -471,28 +565,40 @@ for scene_index, scene in enumerate(scenes):
             f"s={WIDTH}x{HEIGHT}:"
             f"fps={FPS},"
             "format=yuv420p"
+
         )
 
         render_command = [
+
             "ffmpeg",
             "-y",
+
             "-loop", "1",
             "-framerate", str(FPS),
             "-i", str(image_path),
+
             "-i", str(audio_path),
+
             "-vf", video_filter,
             "-af", "apad",
+
             "-t", str(clip_duration),
+
             "-c:v", "libx264",
             "-preset", "ultrafast",
             "-crf", "22",
+
             "-c:a", "aac",
             "-b:a", "160k",
             "-ar", "44100",
+
             "-pix_fmt", "yuv420p",
+
             "-movflags", "+faststart",
             "-shortest",
+
             str(clip_path)
+
         ]
 
         run(render_command)
@@ -503,6 +609,12 @@ for scene_index, scene in enumerate(scenes):
 # ==========================================
 # JOIN VIDEO SEGMENTS
 # ==========================================
+
+if not segments:
+
+    raise RuntimeError(
+        "No video segments were generated."
+    )
 
 concat_file = TEMP / "segments.txt"
 
@@ -520,14 +632,21 @@ with open(
 
 
 concat_command = [
+
     "ffmpeg",
     "-y",
+
     "-f", "concat",
     "-safe", "0",
+
     "-i", str(concat_file),
+
     "-c", "copy",
+
     "-movflags", "+faststart",
+
     str(FINAL_VIDEO)
+
 ]
 
 run(concat_command)
@@ -537,7 +656,9 @@ run(concat_command)
 # FINAL QUALITY REPORT
 # ==========================================
 
-duration = probe_duration(FINAL_VIDEO)
+duration = probe_duration(
+    FINAL_VIDEO
+)
 
 print("\n================================")
 print("FAITH SHORTS V2 GENERATED")
@@ -548,26 +669,28 @@ print(f"Scripture: {scripture}")
 print(f"Scenes: {len(scenes)}")
 print(f"Words: {total_words}")
 print(f"Duration: {duration:.1f} seconds")
-print(f"Video: {FINAL_VIDEO}")
+print(f"Output: {FINAL_VIDEO}")
 
 if duration < 45:
+
     print(
-        "WARNING: Video is shorter than 45 seconds. "
-        "Expand the teaching script."
+        "WARNING: Video is shorter than 45 seconds."
     )
 
 elif duration > 60:
+
     print(
-        "WARNING: Video exceeds 60 seconds. "
-        "Shorten the teaching script."
+        "WARNING: Video exceeds 60 seconds."
     )
 
 else:
+
     print(
         "SUCCESS: Video meets the 45-60 second target."
     )
 
-print("Audio: Embedded male narration")
+print("Audio: Embedded male Piper narration")
 print("Background music: None")
 print("Visuals: Cinematic golden lighting")
+print("Engagement: Interactive faith declarations")
 print("================================")
